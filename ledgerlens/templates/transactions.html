@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import amount with context %}
+{% block title %}Transactions{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Transactions</h1>
+  <div class="actions"><a class="btn" href="{{ url_for('export_transactions') }}">Export CSV</a></div>
+</div>
+<form class="card filters" method="get">
+  <input name="q" placeholder="Search description" value="{{ filters.search or '' }}">
+  <select name="category"><option value="">All categories</option>
+    {% for c in categories %}<option {{ 'selected' if c == filters.category }}>{{ c }}</option>{% endfor %}</select>
+  <select name="document"><option value="">All documents</option>
+    {% for d in docs if d.txn_count %}<option value="{{ d.id }}" {{ 'selected' if d.id == filters.document_id }}>{{ d.filename }}</option>{% endfor %}</select>
+  <label>From <input type="date" name="start" value="{{ filters.start or '' }}"></label>
+  <label>To <input type="date" name="end" value="{{ filters.end or '' }}"></label>
+  <button class="btn primary">Apply</button>
+  <a class="btn" href="{{ url_for('transactions') }}">Reset</a>
+</form>
+<section class="kpis">
+  <div class="kpi"><span>Rows</span><strong>{{ summary.count }}</strong></div>
+  <div class="kpi"><span>Money in</span><strong class="pos">{{ summary.inflow|money }}</strong></div>
+  <div class="kpi"><span>Money out</span><strong class="neg">{{ summary.outflow|money }}</strong></div>
+  <div class="kpi"><span>Net</span><strong class="{{ 'neg' if summary.net < 0 else 'pos' }}">{{ summary.net|money }}</strong></div>
+</section>
+<section class="card">
+  {% if txns %}{% set show_source = true %}{% include "_txn_table.html" %}
+  {% else %}<p class="muted">No transactions match.</p>{% endif %}
+</section>
+{% endblock %}

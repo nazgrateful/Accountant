@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% from "_macros.html" import amount, badge with context %}
+{% block title %}{{ doc.filename }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ doc.filename }}</h1>
+    <p class="muted">{{ badge(doc.doc_type) }} confidence {{ (doc.confidence * 100)|round|int }}% · {{ doc.pages }} page{{ 's' if doc.pages != 1 }} · uploaded {{ doc.uploaded_at.replace('T', ' ') }}</p>
+  </div>
+  <div class="actions">
+    <form method="post" action="{{ url_for('update_status', doc_id=doc.id) }}" class="inline">
+      <select name="status" onchange="this.form.submit()">
+        {% for s in STATUSES %}<option value="{{ s }}" {{ 'selected' if s == doc.status }}>{{ s|capitalize }}</option>{% endfor %}
+      </select>
+    </form>
+    <a class="btn" href="{{ url_for('document_file', doc_id=doc.id) }}">Original file</a>
+    <form method="post" action="{{ url_for('delete_document', doc_id=doc.id) }}" class="inline" onsubmit="return confirm('Delete this document and its transactions?')">
+      <button class="btn danger">Delete</button>
+    </form>
+  </div>
+</div>
+
+{% for w in doc.warnings %}<div class="flash warning">{{ w }}</div>{% endfor %}
+
+{% if doc.fields or doc.doc_type in ('invoice', 'receipt') %}
+<div class="grid2">
+  <section class="card">
+    <h2>Extracted fields</h2>
+    <p class="muted">Correct anything the extractor got wrong — checks are re-run on save.</p>
+    <form method="post" action="{{ url_for('update_fields', doc_id=doc.id) }}" class="fields">
+      <label>Document type
+        <select name="doc_type">{% for k, v in DOC_TYPES.items() %}<option value="{{ k }}" {{ 'selected' if k == doc.doc_type }}>{{ v }}</option>{% endfor %}</select>
+      </label>
+      {% for key, label, kind in editable %}
+      {% set val = doc.fields.get(key) %}
+      <label class="{{ 'missing' if val is none }}">{{ label }}
+        <input name="{{ key }}" type="{{ 'text' if kind == 'number' else kind }}" {% if kind == 'number' %}inputmode="decimal"{% endif %}
+               value="{{ ('%.2f'|format(val) if kind == 'number' and val is not none else (val if val is not none else '')) }}">
+      </label>
+      {% endfor %}
+      <button class="btn primary">Save &amp; re-check</button>
+    </form>
+  </section>
+  <section class="card">
+    <h2>Validation checks</h2>
+    {% for c in doc.checks %}
+    <div class="check c-{{ c.status }}"><b>{{ '✔' if c.status == 'pass' else '✖' if c.status == 'fail' else '!' }} {{ c.check }}</b><br><span>{{ c.detail }}</span></div>
+    {% else %}<p class="muted">No checks applicable.</p>{% endfor %}
+
+    {% if doc.fields.line_items %}
+    <h2>Line items</h2>
+    <table>
+      <thead><tr><th>Description</th><th class="r">Qty</th><th class="r">Unit price</th><th class="r">Amount</th></tr></thead>
+      {% for i in doc.fields.line_items %}
+      <tr class="{{ '' if i.math_ok else 'bad' }}"><td>{{ i.description }}</td><td class="r">{{ "%g"|format(i.quantity) }}</td><td class="r num">{{ i.unit_price|money }}</td><td class="r num">{{ i.amount|money }}</td></tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+  </section>
+</div>
+{% endif %}
+
+{% if txns %}
+<section class="kpis">
+  <div class="kpi"><span>Transactions</span><strong>{{ summary.count }}</strong></div>
+  <div class="kpi"><span>Period</span><strong class="small">{{ summary.period_start }} → {{ summary.period_end }}</strong></div>
+  <div class="kpi"><span>Money in</span><strong class="pos">{{ summary.inflow|money }}</strong></div>
+  <div class="kpi"><span>Money out</span><strong class="neg">{{ summary.outflow|money }}</strong></div>
+  <div class="kpi"><span>Net</span><strong class="{{ 'neg' if summary.net < 0 else 'pos' }}">{{ summary.net|money }}</strong></div>
+</section>
+<section class="card">
+  <h2>Transactions <a class="more" href="{{ url_for('transactions', document=doc.id) }}">Filter &amp; analyse</a></h2>
+  {% include "_txn_table.html" %}
+</section>
+{% endif %}
+
+<details class="card">
+  <summary>Raw extracted text</summary>
+  <pre class="raw">{{ doc.text }}</pre>
+</details>
+{% endblock %}

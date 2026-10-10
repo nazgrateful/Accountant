@@ -1,0 +1,11 @@
+{% macro amount(v) -%}
+<span class="num {{ 'neg' if v is not none and v < 0 else 'pos' if v is not none and v > 0 }}">{{ v|money }}</span>
+{%- endmacro %}
+
+{% macro badge(doc_type) -%}
+<span class="badge t-{{ doc_type }}">{{ DOC_TYPES[doc_type] }}</span>
+{%- endmacro %}
+
+{% macro severity(s) -%}
+<span class="sev sev-{{ s }}">{{ s }}</span>
+{%- endmacro %}

@@ -1,0 +1,29 @@
+{% from "_macros.html" import amount with context %}
+<datalist id="cats">{% for c in categories %}<option value="{{ c }}">{% endfor %}</datalist>
+<table class="txns">
+  <thead><tr><th>Date</th><th>Description</th><th class="r">Amount</th><th class="r">Balance</th><th>Category</th>{% if show_source %}<th>Source</th>{% endif %}</tr></thead>
+  {% for t in txns %}
+  <tr>
+    <td class="nowrap">{{ t.date }}</td>
+    <td>{{ t.description }}</td>
+    <td class="r">{{ amount(t.amount) }}</td>
+    <td class="r num muted">{{ t.balance|money if t.balance is not none else '' }}</td>
+    <td>
+      <form method="post" action="{{ url_for('set_category', txn_id=t.id) }}" class="cat-form">
+        <input name="category" list="cats" value="{{ t.category or '' }}" class="{{ 'locked' if t.category_locked }}" title="{{ 'Set manually' if t.category_locked else 'Set by rule' }}">
+      </form>
+    </td>
+    {% if show_source %}<td><a href="{{ url_for('document_detail', doc_id=t.document_id) }}" class="muted">{{ t.filename }}</a></td>{% endif %}
+  </tr>
+  {% endfor %}
+</table>
+<script>
+document.querySelectorAll('.cat-form input').forEach(inp => {
+  const orig = inp.value;
+  inp.addEventListener('change', async () => {
+    if (inp.value === orig) return;
+    const r = await fetch(inp.form.action, {method: 'POST', body: new FormData(inp.form), headers: {Accept: 'application/json'}});
+    if (r.ok) { inp.classList.add('locked', 'saved'); setTimeout(() => inp.classList.remove('saved'), 900); }
+  });
+});
+</script>

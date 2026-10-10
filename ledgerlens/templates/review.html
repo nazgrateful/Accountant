@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "_macros.html" import severity with context %}
+{% block title %}Review{% endblock %}
+{% block content %}
+<h1>Review queue</h1>
+<p class="muted">Possible duplicates, outliers, reconciliation breaks, failed invoice arithmetic, overdue invoices and uncategorised spend.</p>
+<section class="card">
+<table>
+  <thead><tr><th>Severity</th><th>Issue</th><th>Detail</th><th></th></tr></thead>
+  {% for a in anomalies %}
+  <tr>
+    <td>{{ severity(a.severity) }}</td>
+    <td class="nowrap"><b>{{ a.kind }}</b></td>
+    <td>{{ a.message }}</td>
+    <td>{% if a.document_id %}<a href="{{ url_for('document_detail', doc_id=a.document_id) }}">Open</a>{% endif %}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="4" class="muted">Nothing to review.</td></tr>
+  {% endfor %}
+</table>
+</section>
+{% endblock %}
