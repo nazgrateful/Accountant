@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% from "_macros.html" import amount, badge, severity with context %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Dashboard</h1>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('export_report') }}">Download Excel report</a>
+    <a class="btn primary" href="{{ url_for('upload') }}">Upload documents</a>
+  </div>
+</div>
+
+{% if not doc_count %}
+<div class="empty card">
+  <h2>No documents yet</h2>
+  <p>Upload invoices, receipts, bank statements (PDF) or transaction exports (CSV / Excel).
+     LedgerLens extracts the key figures, categorises spend and flags anything that needs a second look.</p>
+  <a class="btn primary" href="{{ url_for('upload') }}">Upload your first document</a>
+</div>
+{% else %}
+
+<section class="kpis">
+  <div class="kpi"><span>Money in</span><strong class="pos">{{ summary.inflow|money }}</strong></div>
+  <div class="kpi"><span>Money out</span><strong class="neg">{{ summary.outflow|money }}</strong></div>
+  <div class="kpi"><span>Net cash flow</span><strong class="{{ 'neg' if summary.net < 0 else 'pos' }}">{{ summary.net|money }}</strong></div>
+  <div class="kpi"><span>Avg monthly outflow</span><strong>{{ summary.avg_monthly_burn|money }}</strong></div>
+  <div class="kpi"><span>Unpaid invoices</span><strong>{{ payable|money }}</strong><small>{{ open_invoices }} open</small></div>
+  <div class="kpi"><a href="{{ url_for('review') }}"><span>Needs review</span><strong class="{{ 'warn' if anomaly_count }}">{{ anomaly_count }}</strong></a></div>
+</section>
+
+<div class="grid2">
+  <section class="card">
+    <h2>Monthly cash flow</h2>
+    {% if summary.months %}
+    <div class="months">
+      {% for m in summary.months %}
+      <div class="month">
+        <div class="bars">
+          <div class="bar in" style="height: {{ (m['in'] / max_month * 100)|round(1) }}%" title="In {{ m['in']|money }}"></div>
+          <div class="bar out" style="height: {{ (m['out'] / max_month * 100)|round(1) }}%" title="Out {{ m['out']|money }}"></div>
+        </div>
+        <label>{{ m.month }}</label>
+        <small class="{{ 'neg' if m.net < 0 else 'pos' }}">{{ m.net|money }}</small>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="legend"><i class="sw in"></i>Money in <i class="sw out"></i>Money out</p>
+    {% else %}<p class="muted">No transactions extracted yet.</p>{% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Spend by category</h2>
+    {% for cat, total in summary.expenses_by_category[:10] %}
+    <a class="hbar" href="{{ url_for('transactions', category=cat) }}">
+      <span class="label">{{ cat }}</span>
+      <span class="track"><span class="fill" style="width: {{ (total / max_cat * 100)|round(1) }}%"></span></span>
+      <span class="num">{{ total|money }}</span>
+    </a>
+    {% else %}<p class="muted">No expenses yet.</p>{% endfor %}
+  </section>
+</div>
+
+<div class="grid2">
+  <section class="card">
+    <h2>Review queue <a class="more" href="{{ url_for('review') }}">See all</a></h2>
+    {% for a in anomalies %}
+      <div class="flag">{{ severity(a.severity) }} <b>{{ a.kind }}</b><br><span class="muted">{{ a.message }}</span></div>
+    {% else %}<p class="muted">Nothing flagged. 🎉</p>{% endfor %}
+  </section>
+  <section class="card">
+    <h2>Recent documents <a class="more" href="{{ url_for('documents') }}">See all</a></h2>
+    <table>
+      {% for d in docs %}
+      <tr>
+        <td><a href="{{ url_for('document_detail', doc_id=d.id) }}">{{ d.filename }}</a></td>
+        <td>{{ badge(d.doc_type) }}</td>
+        <td class="r">{% if d.fields.total is defined and d.fields.total is not none %}{{ d.fields.total|money }}{% elif d.txn_count %}{{ d.txn_count }} txns{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </section>
+</div>
+
+<section class="card">
+  <h2>Top payees</h2>
+  <table>
+    <thead><tr><th>Payee</th><th class="r">Total paid</th></tr></thead>
+    {% for p, v in summary.top_payees %}
+    <tr><td>{{ p }}</td><td class="r num">{{ v|money }}</td></tr>
+    {% endfor %}
+  </table>
+</section>
+{% endif %}
+{% endblock %}

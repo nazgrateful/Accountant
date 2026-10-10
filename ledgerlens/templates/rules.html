@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Rules{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Categorisation rules</h1>
+  <form method="post" action="{{ url_for('apply_rules') }}"><button class="btn primary">Re-apply rules</button></form>
+</div>
+<p class="muted">Each transaction description is matched against these patterns (case-insensitive regular expressions) in priority order; the first match wins.
+  Categories you set by hand are never overwritten.</p>
+<form class="card filters" method="post">
+  <input name="pattern" placeholder="Pattern, e.g. acme|widgets inc" required>
+  <input name="category" placeholder="Category" required>
+  <input name="priority" type="number" placeholder="Priority (lower first)" value="5">
+  <button class="btn primary">Add rule</button>
+</form>
+<section class="card">
+<table>
+  <thead><tr><th class="r">Priority</th><th>Pattern</th><th>Category</th><th></th></tr></thead>
+  {% for r in rules %}
+  <tr><td class="r">{{ r.priority }}</td><td><code>{{ r.pattern }}</code></td><td>{{ r.category }}</td>
+    <td class="r"><form method="post" action="{{ url_for('delete_rule', rule_id=r.id) }}"><button class="link danger">Remove</button></form></td></tr>
+  {% endfor %}
+</table>
+</section>
+{% endblock %}

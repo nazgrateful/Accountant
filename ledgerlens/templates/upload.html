@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Upload{% endblock %}
+{% block content %}
+<h1>Upload documents</h1>
+<form class="card dropzone" method="post" enctype="multipart/form-data" id="upload-form">
+  <label for="files" class="drop" id="drop">
+    <strong>Drop files here or click to browse</strong>
+    <span class="muted">{{ extensions|join(', ') }} · up to 25 MB · multiple files allowed</span>
+    <span id="chosen" class="chosen"></span>
+  </label>
+  <input id="files" type="file" name="files" multiple accept="{{ extensions|join(',') }}" hidden>
+  <button class="btn primary" type="submit">Extract data</button>
+</form>
+
+<section class="card">
+  <h2>What gets extracted</h2>
+  <div class="grid3">
+    <div><h3>Invoices &amp; receipts</h3>
+      <p>Vendor, customer, invoice/PO numbers, issue &amp; due dates, payment terms, tax ID, currency,
+         subtotal, tax rate, tax, discounts, shipping, total and line items — then checks the arithmetic.</p></div>
+    <div><h3>Bank statements (PDF)</h3>
+      <p>Every transaction line with date, description, amount and running balance. Debits/credits are
+         inferred from balance movements and the statement is reconciled line by line.</p></div>
+    <div><h3>CSV / Excel exports</h3>
+      <p>Columns are auto-detected (date, description, amount or debit/credit, balance) from bank,
+         card and accounting-system exports.</p></div>
+  </div>
+  <p class="muted">Scanned PDFs without a text layer need OCR before upload. Set <code>LEDGERLENS_DAY_FIRST=1</code> for DD/MM/YYYY dates.</p>
+</section>
+<script>
+  const input = document.getElementById('files'), drop = document.getElementById('drop'), chosen = document.getElementById('chosen');
+  const show = () => chosen.textContent = [...input.files].map(f => f.name).join(', ');
+  input.addEventListener('change', show);
+  ['dragenter','dragover'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave','drop'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', ev => { input.files = ev.dataTransfer.files; show(); });
+</script>
+{% endblock %}

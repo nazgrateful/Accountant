@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge with context %}
+{% block title %}Documents{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Documents</h1>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('export_invoices') }}">Export invoices CSV</a>
+    <a class="btn primary" href="{{ url_for('upload') }}">Upload</a>
+  </div>
+</div>
+<div class="tabs">
+  <a href="{{ url_for('documents') }}" class="{{ 'active' if not doc_type }}">All</a>
+  {% for key, label in DOC_TYPES.items() %}
+  <a href="{{ url_for('documents', type=key) }}" class="{{ 'active' if doc_type == key }}">{{ label }}</a>
+  {% endfor %}
+</div>
+<div class="card">
+<table>
+  <thead><tr><th>File</th><th>Type</th><th>Vendor</th><th>Number</th><th>Date</th><th class="r">Total / rows</th><th>Checks</th><th>Status</th><th>Uploaded</th></tr></thead>
+  {% for d in docs %}
+  {% set fails = d.checks|selectattr('status', 'equalto', 'fail')|list|length %}
+  <tr>
+    <td><a href="{{ url_for('document_detail', doc_id=d.id) }}">{{ d.filename }}</a></td>
+    <td>{{ badge(d.doc_type) }}</td>
+    <td>{{ d.fields.vendor or '' }}</td>
+    <td>{{ d.fields.document_number or '' }}</td>
+    <td>{{ d.fields.issue_date or '' }}</td>
+    <td class="r num">{% if d.fields.total is not none and d.fields.total is defined %}{{ d.fields.total|money }} {{ d.fields.currency or '' }}{% elif d.txn_count %}{{ d.txn_count }} transactions{% endif %}</td>
+    <td>{% if d.checks %}{% if fails %}<span class="sev sev-high">{{ fails }} failed</span>{% else %}<span class="sev sev-ok">ok</span>{% endif %}{% endif %}</td>
+    <td><span class="status s-{{ d.status }}">{{ d.status }}</span></td>
+    <td class="muted">{{ d.uploaded_at.replace('T', ' ')[:16] }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="9" class="muted">No documents.</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}
